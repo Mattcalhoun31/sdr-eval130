@@ -1,4 +1,5 @@
 import { openai } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
 
 // System prompt for the Symmetri Growth AI assistant
@@ -39,12 +40,25 @@ If they want to schedule a meeting, say: "Perfect! Let me pull up our calendar f
 
 export const maxDuration = 30;
 
+// Get AI model based on provider setting
+function getAIModel() {
+  const provider = process.env.AI_PROVIDER || 'openai';
+
+  if (provider === 'gemini') {
+    // Use Gemini Pro
+    return google('gemini-1.5-flash');
+  }
+
+  // Default to OpenAI
+  return openai('gpt-4o-mini');
+}
+
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
 
     const result = streamText({
-      model: openai('gpt-4o-mini'),
+      model: getAIModel(),
       system: SYSTEM_PROMPT,
       messages,
       temperature: 0.7,
