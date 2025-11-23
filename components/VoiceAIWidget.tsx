@@ -42,7 +42,7 @@ export default function VoiceAIWidget({ onClose, minimized, onMinimize }: VoiceA
   useEffect(() => {
     if (!hasGreeted && synthesisRef.current) {
       setTimeout(() => {
-        speak("Hi! Welcome to Symmetri Growth. I'm your AI assistant. What brings you here today?");
+        speak("Hey, welcome to the Growth Lab, what brings you here?");
         setHasGreeted(true);
       }, 1000);
     }
@@ -232,7 +232,8 @@ export default function VoiceAIWidget({ onClose, minimized, onMinimize }: VoiceA
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={onMinimize}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110"
+          className="text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110"
+          style={{ background: 'linear-gradient(to right, #E87105, #F89F05)' }}
           aria-label="Open AI Assistant"
         >
           <Volume2 className="w-6 h-6" />
@@ -244,17 +245,17 @@ export default function VoiceAIWidget({ onClose, minimized, onMinimize }: VoiceA
   return (
     <div className="fixed bottom-6 right-6 z-50 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 flex items-center justify-between">
+      <div className="text-white p-4 flex items-center justify-between" style={{ background: 'linear-gradient(to right, #E87105, #F89F05)' }}>
         <div className="flex items-center gap-3">
           <div className={cn(
             "w-3 h-3 rounded-full animate-pulse",
             widgetState === 'listening' && "bg-green-400",
             widgetState === 'processing' && "bg-yellow-400",
-            widgetState === 'speaking' && "bg-blue-400",
+            widgetState === 'speaking' && "bg-amber-300",
             widgetState === 'idle' && "bg-gray-300"
           )} />
           <div>
-            <h3 className="font-semibold">Symmetri Growth AI</h3>
+            <h3 className="font-semibold">Growth Lab AI</h3>
             <p className="text-xs opacity-90">
               {widgetState === 'listening' && 'Listening...'}
               {widgetState === 'processing' && 'Thinking...'}
@@ -300,18 +301,19 @@ export default function VoiceAIWidget({ onClose, minimized, onMinimize }: VoiceA
             className={cn(
               "p-3 rounded-lg max-w-[85%]",
               message.role === 'user'
-                ? "bg-blue-500 text-white ml-auto"
+                ? "text-white ml-auto"
                 : "bg-white border border-gray-200"
             )}
+            style={message.role === 'user' ? { backgroundColor: '#E87105' } : {}}
           >
             <p className="text-sm">{message.content}</p>
           </div>
         ))}
 
         {transcript && (
-          <div className="p-3 rounded-lg bg-blue-100 border-2 border-blue-300 max-w-[85%] ml-auto">
-            <p className="text-sm text-blue-900">{transcript}</p>
-            <p className="text-xs text-blue-600 mt-1">Speaking...</p>
+          <div className="p-3 rounded-lg bg-orange-50 border-2 max-w-[85%] ml-auto" style={{ borderColor: '#F89F05' }}>
+            <p className="text-sm text-gray-900">{transcript}</p>
+            <p className="text-xs mt-1" style={{ color: '#E87105' }}>Speaking...</p>
           </div>
         )}
 
@@ -331,7 +333,7 @@ export default function VoiceAIWidget({ onClose, minimized, onMinimize }: VoiceA
         <div className="absolute inset-0 bg-white p-4 flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-semibold text-lg flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
+              <Calendar className="w-5 h-5" style={{ color: '#E87105' }} />
               Schedule a Meeting
             </h3>
             <button
@@ -342,16 +344,15 @@ export default function VoiceAIWidget({ onClose, minimized, onMinimize }: VoiceA
             </button>
           </div>
           <div className="flex-1 border rounded-lg overflow-hidden">
-            {/* Replace with your Calendly URL */}
             <iframe
-              src="https://calendly.com/your-link-here"
+              src={process.env.NEXT_PUBLIC_CALENDAR_URL || "https://calendar.app.google/66YgiNZiWMFBY2qH9"}
               width="100%"
               height="100%"
               frameBorder="0"
             />
           </div>
           <p className="text-xs text-gray-500 mt-2 text-center">
-            Replace the Calendly URL in the code with your actual booking link
+            Schedule a time that works best for you
           </p>
         </div>
       )}
@@ -362,11 +363,12 @@ export default function VoiceAIWidget({ onClose, minimized, onMinimize }: VoiceA
           onClick={toggleListening}
           disabled={isSpeaking || isLoading}
           className={cn(
-            "p-4 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed",
+            "p-4 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-md hover:shadow-lg",
             isListening
-              ? "bg-red-500 hover:bg-red-600 text-white shadow-lg scale-110"
-              : "bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg hover:scale-105"
+              ? "bg-red-500 hover:bg-red-600 scale-110"
+              : "hover:scale-105"
           )}
+          style={!isListening ? { backgroundColor: '#E87105' } : {}}
           aria-label={isListening ? "Stop listening" : "Start listening"}
         >
           {isListening ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
@@ -383,7 +385,8 @@ export default function VoiceAIWidget({ onClose, minimized, onMinimize }: VoiceA
 
         <button
           onClick={() => setShowCalendar(true)}
-          className="p-4 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
+          className="p-4 rounded-full text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
+          style={{ backgroundColor: '#FFBA00' }}
           aria-label="Schedule meeting"
         >
           <Calendar className="w-6 h-6" />
