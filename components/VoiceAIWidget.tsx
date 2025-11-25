@@ -28,19 +28,42 @@ export default function VoiceAIWidget({ onClose, minimized, onMinimize }: VoiceA
   const [isLoading, setIsLoading] = useState(false);
 
   const recognitionRef = useRef<any>(null);
-  const synthesisRef = useRef<SpeechSynthesis | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize speech synthesis
+  // Initialize audio element for ElevenLabs
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      synthesisRef.current = window.speechSynthesis;
+      audioRef.current = new Audio();
+
+      audioRef.current.onplay = () => {
+        setIsSpeaking(true);
+        setWidgetState('speaking');
+      };
+
+      audioRef.current.onended = () => {
+        setIsSpeaking(false);
+        setWidgetState('idle');
+      };
+
+      audioRef.current.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        setIsSpeaking(false);
+        setWidgetState('idle');
+      };
     }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
   }, []);
 
   // Greet user on mount
   useEffect(() => {
-    if (!hasGreeted && synthesisRef.current) {
+    if (!hasGreeted && audioRef.current) {
       setTimeout(() => {
         speak("Hey, welcome to the Growth Lab, what brings you here?");
         setHasGreeted(true);
@@ -113,32 +136,59 @@ export default function VoiceAIWidget({ onClose, minimized, onMinimize }: VoiceA
     };
   }, [isListening]);
 
-  const speak = (text: string) => {
-    if (synthesisRef.current) {
-      // Cancel any ongoing speech
-      synthesisRef.current.cancel();
+  const speak = async (text: string) => {
+    if (!audioRef.current) return;
 
-      // Check if user wants to book a meeting
-      if (text.toLowerCase().includes('pull up our calendar') || text.toLowerCase().includes('schedule')) {
-        setShowCalendar(true);
+    // Stop any ongoing speech
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+
+    // Check if user wants to book a meeting
+    if (text.toLowerCase().includes('pull up our calendar') || text.toLowerCase().includes('pull up the calendar') || text.toLowerCase().includes('schedule')) {
+      setShowCalendar(true);
+    }
+
+    try {
+      setWidgetState('speaking');
+
+      // Call ElevenLabs TTS API
+      const response = await fetch('/api/text-to-speech', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          voice: 'Rachel', // Ultra-realistic female voice
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('TTS API failed');
       }
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.1;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
+      // Create audio blob and play
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
 
-      utterance.onstart = () => {
-        setIsSpeaking(true);
-        setWidgetState('speaking');
-      };
+      audioRef.current.src = audioUrl;
+      await audioRef.current.play();
 
-      utterance.onend = () => {
+      // Cleanup URL after playing
+      audioRef.current.onended = () => {
+        URL.revokeObjectURL(audioUrl);
         setIsSpeaking(false);
         setWidgetState('idle');
       };
+    } catch (error) {
+      console.error('Speech error:', error);
+      setIsSpeaking(false);
+      setWidgetState('idle');
 
-      synthesisRef.current.speak(utterance);
+      // Fallback to browser TTS if ElevenLabs fails
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.1;
+        window.speechSynthesis.speak(utterance);
+      }
     }
   };
 
@@ -220,8 +270,9 @@ export default function VoiceAIWidget({ onClose, minimized, onMinimize }: VoiceA
   };
 
   const stopSpeaking = () => {
-    if (synthesisRef.current) {
-      synthesisRef.current.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
       setIsSpeaking(false);
       setWidgetState('idle');
     }
